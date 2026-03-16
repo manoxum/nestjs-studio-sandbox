@@ -1,0 +1,26 @@
+name: sandbox-engine
+services:
+  master:
+    init: true
+    build:
+      context: .
+      dockerfile: sandbox.dockerfile
+    environment:
+      PORT_APPLICATION: ${PORT_APPLICATION:-3000}
+      PORT_RANGE_START: ${PORT_RANGE_START:-16100}
+      PORT_RANGE_END: ${PORT_RANGE_END:-16150}
+      NODE_ENV: ${NODE_ENV:-development}
+    ports:
+      - "3000:3000"         # API Principal
+#      - "${PORT_RANGE_START:-16100}-${PORT_RANGE_END:-16150}:${PORT_RANGE_START:-16100}-${PORT_RANGE_END:-16150}"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Garante que o node_modules não seja sobrescrito pelo host
+      - /app/node_modules
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'

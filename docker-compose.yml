@@ -1,6 +1,26 @@
 name: sandbox-engine
 services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-sandbox}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-sandbox123}
+      POSTGRES_DB: ${DB_NAME:-sandbox}
+    ports:
+      - "5406:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sandbox}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   master:
+    depends_on:
+      postgres:
+        condition: service_healthy
     init: true
     build:
       context: .
@@ -10,17 +30,26 @@ services:
       PORT_RANGE_START: ${PORT_RANGE_START:-16100}
       PORT_RANGE_END: ${PORT_RANGE_END:-16150}
       NODE_ENV: ${NODE_ENV:-development}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER:-sandbox}
+      DB_NAME: ${DB_NAME:-sandbox}
+      DB_PASSWORD: ${DB_PASSWORD:-sandbox123}
+      DATABASE_URL: postgresql://${DB_USER:-sandbox}:${DB_PASSWORD:-sandbox123}@postgres:5432/${DB_NAME:-sandbox}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
     ports:
-      - "3000:3000"         # API Principal
-#      - "${PORT_RANGE_START:-16100}-${PORT_RANGE_END:-16150}:${PORT_RANGE_START:-16100}-${PORT_RANGE_END:-16150}"
-
+      - "3006:3006"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      # Garante que o node_modules não seja sobrescrito pelo host
       - /app/node_modules
+      - sandbox_data:/app/sandbox_data   # Persistir pastas de projetos
     restart: unless-stopped
     deploy:
       resources:
         limits:
           memory: 1G
           cpus: '0.5'
+
+volumes:
+  postgres_data:
+  sandbox_data:

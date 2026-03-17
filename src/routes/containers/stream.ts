@@ -1,3 +1,6 @@
+// filename: src/routes/containers/stream.ts
+
+
 import { Router } from 'express';
 import { spawn } from 'child_process';
 import { inspectContainer } from '../../services/docker';

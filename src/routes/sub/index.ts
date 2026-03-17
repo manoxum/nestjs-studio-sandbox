@@ -1,4 +1,4 @@
-// filename: backend-sanbox/src/routes/sub/index.ts
+// filename: src/routes/sub/index.ts
 
 import { Router } from 'express';
 import createRouter from './create';

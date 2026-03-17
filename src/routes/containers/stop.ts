@@ -1,3 +1,5 @@
+// filename: src/routes/containers/stop.ts
+
 import { Router } from 'express';
 import { stopContainer } from '../../services/docker';
 import { validateContainerName } from '../../utils/sanitize';

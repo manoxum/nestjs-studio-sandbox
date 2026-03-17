@@ -1,4 +1,4 @@
-// filename: backend-sanbox/src/routes/install.ts
+// filename: src/routes/install.ts
 
 import { Router } from 'express';
 import { executeCommand } from '../services/execCmd';

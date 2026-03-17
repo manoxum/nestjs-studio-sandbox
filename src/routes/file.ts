@@ -1,4 +1,4 @@
-// filename: backend-sanbox/src/routes/file.ts
+// filename: src/routes/file.ts
 
 import { Router } from 'express';
 import { writeFile, deleteFile } from '../services/fileOps';

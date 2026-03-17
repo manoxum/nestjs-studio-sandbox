@@ -1,4 +1,4 @@
-// filename: backend-sanbox/routes/sub/status.ts
+// filename: routes/sub/status.ts
 
 import { Router } from 'express';
 import { inspectContainer } from '../../services/docker';

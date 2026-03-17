@@ -1,0 +1,15 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator psm {
+  provider                           = "psm generate"
+  output                             = "./psm/"
+  driver                             = "@prisma-psm/pg"
+  url                                = env("DATABASE_URL")
+  driver_opts_ssl_rejectUnauthorized = false
+}

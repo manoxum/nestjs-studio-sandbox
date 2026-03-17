@@ -1,4 +1,4 @@
-// filename: backend-sanbox/src/routes/restart.ts
+// filename: src/routes/restart.ts
 
 import { Router } from 'express';
 import * as process from 'process';

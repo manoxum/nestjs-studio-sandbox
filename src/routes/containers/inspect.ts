@@ -1,3 +1,5 @@
+// filename: src/routes/containers/inspect.ts
+
 import { Router } from 'express';
 import { inspectContainer } from '../../services/docker';
 import { getPortMappings } from '../../services/portAlloc';

@@ -1,3 +1,6 @@
+// filename: src/routes/containers/remove.ts
+
+
 import { Router } from 'express';
 import { removeContainer } from '../../services/docker';
 import { releasePorts } from '../../services/portAlloc';

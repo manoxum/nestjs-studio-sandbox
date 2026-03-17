@@ -1,0 +1,15 @@
+Novas alterações para o projecto:
+1 - Em todos os modelos devem ter os campos
+    - id Int  @id @default(autoincrement()) - Que deve ser usando internamente no banco de dados para o pk/fk
+    - uid String  @id @default(uuid(7)) - Que deve ser usado externamente para referencia de recursos
+    - status Int
+    - createdAt DateTime  @default(now()) @map("created_at")
+    - createdBy Int    @map("created_by")
+    - updatedAt DateTime  @updatedAt @map("updated_at")
+    - updatedBy Int    @map("updated_by")
+2 - Adicionar ao modelo assets mais dois campos para alem dos que já existe sendo:
+    - Todos os campos bases especificado na linha anterior
+    - binary - Campo para armazenar o binario do para caso de ficheiro binario (opcional)
+    - text - Campo text para arquivos de texto simples (opcional)
+3 - Ao criar/remover um ficheiro em projecto, deve ser sincronizado no assets do project:file.
+    - Depois que o files forem criado no projecto, deve ser retornado o uid do assets associado ao arquivo

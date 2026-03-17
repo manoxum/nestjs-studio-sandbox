@@ -130,8 +130,7 @@ router.post('/', async (req: AuthRequest, res) => {
             },
         });
 
-        // Emitir para a sala do projeto
-        io.to(`project:${projectUid}`).emit(SOCKET_EVENTS.COLLABORATOR_ADDED, {
+        const payload = {
             projectUid,
             collaborator: {
                 uid: collaborator.uid,
@@ -141,13 +140,16 @@ router.post('/', async (req: AuthRequest, res) => {
                 endAt: collaborator.endAt,
             },
             addedBy: { uid: req.user!.uid, name: req.user!.name },
-        });
+            sourceSocketId: (req as any).socketId,
+        };
+        io.to(`project:${projectUid}`).emit(SOCKET_EVENTS.COLLABORATOR_ADDED, payload);
 
-        // Emitir para a sala pessoal do novo colaborador
         emitToUser(io, user.id, SOCKET_EVENTS.USER_COLLABORATOR_ADDED, {
             projectUid,
             projectName: collaborator.project.name,
             role: collaborator.role,
+            addedBy: { uid: req.user!.uid, name: req.user!.name },
+            sourceSocketId: (req as any).socketId,
         });
 
         res.status(201).json(collaborator);
@@ -234,7 +236,7 @@ router.patch('/:userUid', async (req: AuthRequest, res) => {
             },
         });
 
-        io.to(`project:${projectUid}`).emit(SOCKET_EVENTS.COLLABORATOR_UPDATED, {
+        const payload = {
             projectUid,
             collaborator: {
                 uid: updated.uid,
@@ -244,7 +246,9 @@ router.patch('/:userUid', async (req: AuthRequest, res) => {
                 endAt: updated.endAt,
             },
             updatedBy: { uid: req.user!.uid, name: req.user!.name },
-        });
+            sourceSocketId: (req as any).socketId,
+        };
+        io.to(`project:${projectUid}`).emit(SOCKET_EVENTS.COLLABORATOR_UPDATED, payload);
 
         emitToUser(io, updated.userId, SOCKET_EVENTS.USER_COLLABORATOR_UPDATED, {
             projectUid,
@@ -252,6 +256,8 @@ router.patch('/:userUid', async (req: AuthRequest, res) => {
             role: updated.role,
             startAt: updated.startAt,
             endAt: updated.endAt,
+            updatedBy: { uid: req.user!.uid, name: req.user!.name },
+            sourceSocketId: (req as any).socketId,
         });
 
         res.json(updated);
@@ -309,15 +315,19 @@ router.delete('/:userUid', async (req: AuthRequest, res) => {
 
         await prisma.collaborator.delete({ where: { id: collaborator.id } });
 
-        io.to(`project:${projectUid}`).emit(SOCKET_EVENTS.COLLABORATOR_REMOVED, {
+        const payload = {
             projectUid,
             userUid,
             removedBy: { uid: req.user!.uid, name: req.user!.name },
-        });
+            sourceSocketId: (req as any).socketId,
+        };
+        io.to(`project:${projectUid}`).emit(SOCKET_EVENTS.COLLABORATOR_REMOVED, payload);
 
         emitToUser(io, collaborator.userId, SOCKET_EVENTS.USER_COLLABORATOR_REMOVED, {
             projectUid,
             projectName: collaborator.project.name,
+            removedBy: { uid: req.user!.uid, name: req.user!.name },
+            sourceSocketId: (req as any).socketId,
         });
 
         res.json({ message: 'Collaborator removed' });

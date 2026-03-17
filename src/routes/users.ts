@@ -30,7 +30,7 @@ const avatarStorage = multer.diskStorage({
 });
 const uploadAvatar = multer({
     storage: avatarStorage,
-    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+    limits: { fileSize: 2 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         if (!file.mimetype.startsWith('image/')) {
             return cb(new Error('Only images are allowed') as any, false);
@@ -266,8 +266,10 @@ router.post('/me/avatar', uploadAvatar.single('avatar'), async (req: AuthRequest
             data: { avatar: avatarUrl, updatedBy: req.user!.id },
         });
 
-        // Notificar outros clientes do mesmo utilizador
-        emitToUser(io, req.user!.id, 'user:avatar_updated', { avatarUrl });
+        emitToUser(io, req.user!.id, 'user:avatar_updated', {
+            avatarUrl,
+            sourceSocketId: (req as any).socketId,
+        });
 
         res.json({ avatarUrl });
     } catch (err: any) {

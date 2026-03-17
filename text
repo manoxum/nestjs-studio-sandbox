@@ -1,15 +1,288 @@
-Novas alterações para o projecto:
-1 - Em todos os modelos devem ter os campos
-    - id Int  @id @default(autoincrement()) - Que deve ser usando internamente no banco de dados para o pk/fk
-    - uid String  @id @default(uuid(7)) - Que deve ser usado externamente para referencia de recursos
-    - status Int
-    - createdAt DateTime  @default(now()) @map("created_at")
-    - createdBy Int    @map("created_by")
-    - updatedAt DateTime  @updatedAt @map("updated_at")
-    - updatedBy Int    @map("updated_by")
-2 - Adicionar ao modelo assets mais dois campos para alem dos que já existe sendo:
-    - Todos os campos bases especificado na linha anterior
-    - binary - Campo para armazenar o binario do para caso de ficheiro binario (opcional)
-    - text - Campo text para arquivos de texto simples (opcional)
-3 - Ao criar/remover um ficheiro em projecto, deve ser sincronizado no assets do project:file.
-    - Depois que o files forem criado no projecto, deve ser retornado o uid do assets associado ao arquivo
+Sandbox Master API
+ 1.0.0 
+OAS 3.0
+API para gerenciamento de sandboxes Docker com suporte a WebSockets (Socket.IO) para atualizações em tempo real.
+
+Servers
+
+http://localhost:3006 - Servidor local
+Auth
+
+
+POST
+/auth/register
+Registra um novo usuário
+
+POST
+/auth/login
+Faz login e retorna token JWT
+
+POST
+/auth/logout
+Logout (apenas no cliente, invalida token localmente)
+Users
+
+
+GET
+/users
+Lista todos os usuários (apenas admin)
+
+
+GET
+/users/me
+Retorna os dados do usuário logado
+
+
+PUT
+/users/me
+Atualiza o nome do usuário logado
+
+
+POST
+/users/me/change-password
+Altera a senha do usuário logado
+
+
+POST
+/users/me/avatar
+Faz upload da foto de perfil do usuário
+
+
+GET
+/users/{uid}
+Retorna um usuário específico (apenas admin)
+
+
+DELETE
+/users/{uid}
+Remove um usuário (apenas admin)
+
+Projects
+
+
+GET
+/projects
+Lista projetos do usuário (owner ou colaborador) - apenas ativos
+
+POST
+/projects
+Cria um novo projeto e sua pasta no sandbox
+
+GET
+/projects/{projectUid}
+Detalhes de um projeto (requer acesso) - apenas ativo, a menos que includeDeleted=true
+
+PUT
+/projects/{projectUid}
+Atualiza um projeto (requer role editor ou owner)
+
+DELETE
+/projects/{projectUid}
+Remove um projeto (requer owner) - marca como excluído (status = -1) e remove a pasta do disco
+
+POST
+/projects/{projectUid}/restore
+Restaura um projeto excluído (requer owner) - muda status de -1 para 1 e recria a pasta
+Collaborators
+
+
+GET
+/projects/{projectUid}/collaborators
+Lista colaboradores de um projeto
+
+POST
+/projects/{projectUid}/collaborators
+Adiciona um colaborador ao projeto
+
+PATCH
+/projects/{projectUid}/collaborators/{userUid}
+Atualiza papel ou período de um colaborador
+
+DELETE
+/projects/{projectUid}/collaborators/{userUid}
+Remove um colaborador do projeto
+Assets
+
+
+GET
+/projects/{projectUid}/assets
+Lista todos os assets de um projeto
+
+POST
+/projects/{projectUid}/assets
+Cria um novo asset (metadados) no projeto
+
+GET
+/projects/{projectUid}/assets/{assetUid}
+Retorna um asset específico
+
+PUT
+/projects/{projectUid}/assets/{assetUid}
+Atualiza um asset (requer editor)
+
+DELETE
+/projects/{projectUid}/assets/{assetUid}
+Remove um asset (requer editor)
+
+GET
+/projects/{projectUid}/assets/{assetUid}/children
+Lista os filhos de um asset
+Project Commands
+
+
+POST
+/projects/{projectUid}/command
+Executa um comando no diretório do projeto
+
+POST
+/projects/{projectUid}/install
+Instala um pacote npm no diretório do projeto
+Project Files
+
+
+POST
+/projects/{projectUid}/files
+Cria um arquivo no projeto (upload ou conteúdo texto)
+
+GET
+/projects/{projectUid}/files
+Lista arquivos e pastas do projeto
+
+GET
+/projects/{projectUid}/files/*
+Download de um arquivo (caminho relativo)
+
+DELETE
+/projects/{projectUid}/files/*
+Remove um arquivo
+Builds
+
+
+POST
+/sandbox/build
+Faz upload de um arquivo (tar/zip) com Dockerfile, constrói e executa
+
+GET
+/sandbox/builds
+Lista todos os builds ativos
+
+POST
+/sandbox/builds/{name}/stop
+Para um container de build
+
+DELETE
+/sandbox/builds/{name}
+Remove um container de build
+Containers
+
+Sub-Containers
+
+Arquivos
+
+
+POST
+/sandbox/file
+Cria um arquivo no diretório sandbox
+
+DELETE
+/sandbox/file/{filename}
+Remove um arquivo do diretório sandbox
+Comandos
+
+
+POST
+/sandbox/install
+Instala um pacote npm no diretório sandbox
+Sistema
+
+
+POST
+/sandbox/restart
+Reinicia o servidor master (sai do processo)
+Invites
+
+
+POST
+/projects/{projectUid}/invites
+Cria um link de convite para o projeto
+
+GET
+/projects/{projectUid}/invites
+Lista os convites ativos de um projeto
+
+DELETE
+/projects/{projectUid}/invites/{inviteUid}
+Cancela um convite (apaga)
+
+POST
+/invites/join
+Aceita um convite e adiciona o usuário como colaborador
+Contributions
+
+
+GET
+/contributions/me
+Lista as contribuições do próprio usuário
+
+GET
+/contributions/projects/{projectUid}
+Lista as contribuições de um projeto (requer acesso)
+WebSockets
+Eventos em tempo real via Socket.IO
+Autenticação: O cliente deve enviar o token JWT no handshake: { auth: { token: "JWT" } }.
+
+Eventos do cliente:
+
+join-project(projectUid): Entrar na sala do projeto.
+leave-project(projectUid): Sair da sala do projeto.
+subscribe-asset(assetUid): Subscrever a um asset específico (requer acesso ao projeto).
+unsubscribe-asset(assetUid): Cancelar subscrição de um asset.
+Eventos do servidor (emitidos para a sala do projeto):
+
+project:updated – Projeto atualizado.
+Payload: { projectUid, name, updatedAt, user: { uid, name }, sourceSocketId }
+project:deleted – Projeto eliminado.
+Payload: { projectUid, user: { uid, name }, sourceSocketId }
+file:created – Ficheiro criado (upload).
+Payload: { projectUid, filename, assetUid, action: 'created', user: { uid, name }, sourceSocketId }
+file:updated – Ficheiro atualizado (texto).
+Payload: { projectUid, filename, assetUid, action: 'updated', user: { uid, name }, sourceSocketId }
+file:deleted – Ficheiro eliminado.
+Payload: { projectUid, path, user: { uid, name }, sourceSocketId }
+asset:created – Asset criado.
+Payload: { projectUid, asset: { uid, type, name, path, configs, parentUid }, createdBy: { uid, name }, sourceSocketId }
+asset:updated – Asset atualizado.
+Payload: { projectUid, assetUid, asset: { uid, name, configs, parentUid }, updatedBy: { uid, name }, sourceSocketId }
+asset:deleted – Asset eliminado.
+Payload: { projectUid, assetUid, deletedBy: { uid, name }, sourceSocketId }
+collaborator:added – Colaborador adicionado.
+Payload: { projectUid, collaborator: { uid, user: { uid, name, email }, role, startAt, endAt }, addedBy: { uid, name }, sourceSocketId }
+collaborator:updated – Colaborador atualizado.
+Payload: { projectUid, collaborator: { uid, user: { uid, name, email }, role, startAt, endAt }, updatedBy: { uid, name }, sourceSocketId }
+collaborator:removed – Colaborador removido.
+Payload: { projectUid, userUid, removedBy: { uid, name }, sourceSocketId }
+Eventos do servidor (emitidos para a sala pessoal do utilizador):
+
+user:collaborator_added – O utilizador foi adicionado como colaborador a um projeto.
+Payload: { projectUid, projectName, role, addedBy: { uid, name }, sourceSocketId }
+user:collaborator_updated – O papel do utilizador num projeto foi alterado.
+Payload: { projectUid, projectName, role, startAt, endAt, updatedBy: { uid, name }, sourceSocketId }
+user:collaborator_removed – O utilizador foi removido de um projeto.
+Payload: { projectUid, projectName, removedBy: { uid, name }, sourceSocketId }
+user:avatar_updated – O utilizador atualizou a sua foto de perfil.
+Payload: { avatarUrl, sourceSocketId }
+Nota: Todos os eventos incluem informações contextuais, o utilizador que realizou a ação e o identificador da sessão socket que originou o evento.
+
+
+
+Schemas
+PortMapping
+BuildInfo
+ContainerInfo
+Error
+Project
+User
+Collaborator
+Asset
+Invite
+Contribution

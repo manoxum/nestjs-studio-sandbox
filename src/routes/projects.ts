@@ -122,7 +122,7 @@ router.post('/', async (req: AuthRequest, res) => {
                     ownerId: userId,
                     createdBy: userId,
                     updatedBy: userId,
-                    status: 1, // ativo
+                    status: 1,
                 },
             });
 
@@ -266,7 +266,8 @@ router.put('/:projectUid', checkProjectPermission('editor'), async (req: AuthReq
             name: updated.name,
             updatedAt: updated.updatedAt,
             user: { uid: req.user!.uid, name: req.user!.name },
-        }, userId);
+            sourceSocketId: (req as any).socketId,
+        }, (req as any).socketId);
 
         res.json({ uid: updated.uid, name: updated.name });
     } catch (err: any) {
@@ -301,19 +302,17 @@ router.delete('/:projectUid', checkProjectPermission('owner'), async (req: AuthR
         const project = await prisma.project.findUnique({ where: { uid: projectUid } });
         if (!project) return res.status(404).json({ error: 'Project not found' });
 
-        // Emitir evento ANTES de marcar como excluído
         emitToProject(io, projectUid, SOCKET_EVENTS.PROJECT_DELETED, {
             projectUid,
             user: { uid: req.user!.uid, name: req.user!.name },
-        }, userId);
+            sourceSocketId: (req as any).socketId,
+        }, (req as any).socketId);
 
-        // Marcar projeto como excluído (status = -1)
         await prisma.project.update({
             where: { id: project.id },
             data: { status: -1, updatedBy: userId },
         });
 
-        // Remover a pasta do projeto do disco (opcional, mas para liberar espaço)
         const projectDir = path.join(PROJECTS_DIR, project.uid);
         await fs.remove(projectDir).catch((err) => {
             console.warn(`[DELETE] Could not remove project directory: ${err.message}`);
@@ -357,24 +356,21 @@ router.post('/:projectUid/restore', checkProjectPermission('owner'), async (req:
             return res.status(400).json({ error: 'Project is not deleted' });
         }
 
-        // Restaurar status
         await prisma.project.update({
             where: { id: project.id },
             data: { status: 1, updatedBy: userId },
         });
 
-        // Recriar a pasta do projeto (opcional, pode ser recriada depois)
         const projectDir = path.join(PROJECTS_DIR, project.uid);
         await fs.ensureDir(projectDir);
-
-        // Opcional: recriar arquivos a partir dos assets? Pode ser feito depois
 
         emitToProject(io, projectUid, SOCKET_EVENTS.PROJECT_UPDATED, {
             projectUid,
             name: project.name,
             updatedAt: new Date(),
             user: { uid: req.user!.uid, name: req.user!.name },
-        }, userId);
+            sourceSocketId: (req as any).socketId,
+        }, (req as any).socketId);
 
         res.json({ message: 'Project restored' });
     } catch (err: any) {

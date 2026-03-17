@@ -6,7 +6,7 @@ model User {
   name      String
   email     String   @unique
   password  String
-  avatar    String? // URL ou caminho da foto de perfil
+  avatar    String?
   role      String   @default("user")
   status    Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
@@ -16,7 +16,7 @@ model User {
 
   ownedProjects  Project[]      @relation("Owner")
   collaborators  Collaborator[] @relation("CollaboratorUser")
-  assetsOwnerId  Asset[]        @relation("AssetOwner")
+  assets         Asset[]        @relation("AssetOwner")
   invitesCreated Invite[]       @relation("InviteCreator")
   invitesUsed    Invite[]       @relation("InviteUsedBy")
   contributions  Contribution[] @relation("Contributor")
@@ -30,7 +30,7 @@ model Project {
   name      String   @unique
   ownerId   Int      @map("owner_id")
   owner     User     @relation("Owner", fields: [ownerId], references: [id])
-  status    Int      @default(1) // 1 = ativo, -1 = excluído
+  status    Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
   createdBy Int      @map("created_by")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -71,7 +71,12 @@ model Asset {
   type      String
   name      String
   ownerId   Int      @map("owner_id")
+  owner     User     @relation("AssetOwner", fields: [ownerId], references: [id])
   projectId Int      @map("project_id")
+  project   Project  @relation("AssetsProject", fields: [projectId], references: [id], onDelete: Cascade)
+  parentId  Int?     @map("parent_id")
+  parent    Asset?   @relation("AssetChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Asset[]  @relation("AssetChildren")
   path      String
   configs   Json?
   binary    Bytes?
@@ -81,9 +86,6 @@ model Asset {
   createdBy Int      @map("created_by")
   updatedAt DateTime @updatedAt @map("updated_at")
   updatedBy Int      @map("updated_by")
-
-  project Project @relation("AssetsProject", fields: [projectId], references: [id])
-  user    User?   @relation("AssetOwner", fields: [ownerId], references: [id])
 
   @@unique([projectId, path])
   @@map("assets")

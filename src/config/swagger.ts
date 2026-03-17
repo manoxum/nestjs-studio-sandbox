@@ -103,6 +103,7 @@ const options: swaggerJsdoc.Options = {
                         userOwnerId: { type: 'string', format: 'uuid', nullable: true },
                         path: { type: 'string' },
                         configs: { type: 'object' },
+                        parentUid: { type: 'string', format: 'uuid', nullable: true, description: 'UID do asset pai (para hierarquia)' },
                         createdAt: { type: 'string', format: 'date-time' },
                         updatedAt: { type: 'string', format: 'date-time' }
                     }
@@ -147,7 +148,7 @@ const options: swaggerJsdoc.Options = {
             { name: 'Comandos' },
             { name: 'Sistema' },
             { name: 'Invites' },
-            { name: 'Contributions' }, // <-- nova tag
+            { name: 'Contributions' },
             {
                 name: 'WebSockets',
                 description:
@@ -164,40 +165,40 @@ const options: swaggerJsdoc.Options = {
 **Eventos do servidor (emitidos para a sala do projeto):**
 
 - **\`project:updated\`** – Projeto atualizado.
-  - Payload: \`{ projectUid, name, updatedAt, user: { uid, name } }\`
+  - Payload: \`{ projectUid, name, updatedAt, user: { uid, name }, sourceSocketId }\`
 - **\`project:deleted\`** – Projeto eliminado.
-  - Payload: \`{ projectUid, user: { uid, name } }\`
+  - Payload: \`{ projectUid, user: { uid, name }, sourceSocketId }\`
 - **\`file:created\`** – Ficheiro criado (upload).
-  - Payload: \`{ projectUid, filename, assetUid, action: 'created', user: { uid, name } }\`
+  - Payload: \`{ projectUid, filename, assetUid, action: 'created', user: { uid, name }, sourceSocketId }\`
 - **\`file:updated\`** – Ficheiro atualizado (texto).
-  - Payload: \`{ projectUid, filename, assetUid, action: 'updated', user: { uid, name } }\`
+  - Payload: \`{ projectUid, filename, assetUid, action: 'updated', user: { uid, name }, sourceSocketId }\`
 - **\`file:deleted\`** – Ficheiro eliminado.
-  - Payload: \`{ projectUid, path, user: { uid, name } }\`
+  - Payload: \`{ projectUid, path, user: { uid, name }, sourceSocketId }\`
 - **\`asset:created\`** – Asset criado.
-  - Payload: \`{ projectUid, asset: { uid, type, name, path, configs }, createdBy: { uid, name } }\`
+  - Payload: \`{ projectUid, asset: { uid, type, name, path, configs, parentUid }, createdBy: { uid, name }, sourceSocketId }\`
 - **\`asset:updated\`** – Asset atualizado.
-  - Payload: \`{ projectUid, assetUid, asset: { uid, name, configs }, updatedBy: { uid, name } }\`
+  - Payload: \`{ projectUid, assetUid, asset: { uid, name, configs, parentUid }, updatedBy: { uid, name }, sourceSocketId }\`
 - **\`asset:deleted\`** – Asset eliminado.
-  - Payload: \`{ projectUid, assetUid, deletedBy: { uid, name } }\`
+  - Payload: \`{ projectUid, assetUid, deletedBy: { uid, name }, sourceSocketId }\`
 - **\`collaborator:added\`** – Colaborador adicionado.
-  - Payload: \`{ projectUid, collaborator: { uid, user: { uid, name, email }, role, startAt, endAt }, addedBy: { uid, name } }\`
+  - Payload: \`{ projectUid, collaborator: { uid, user: { uid, name, email }, role, startAt, endAt }, addedBy: { uid, name }, sourceSocketId }\`
 - **\`collaborator:updated\`** – Colaborador atualizado.
-  - Payload: \`{ projectUid, collaborator: { uid, user: { uid, name, email }, role, startAt, endAt }, updatedBy: { uid, name } }\`
+  - Payload: \`{ projectUid, collaborator: { uid, user: { uid, name, email }, role, startAt, endAt }, updatedBy: { uid, name }, sourceSocketId }\`
 - **\`collaborator:removed\`** – Colaborador removido.
-  - Payload: \`{ projectUid, userUid, removedBy: { uid, name } }\`
+  - Payload: \`{ projectUid, userUid, removedBy: { uid, name }, sourceSocketId }\`
 
 **Eventos do servidor (emitidos para a sala pessoal do utilizador):**
 
 - **\`user:collaborator_added\`** – O utilizador foi adicionado como colaborador a um projeto.
-  - Payload: \`{ projectUid, projectName, role }\`
+  - Payload: \`{ projectUid, projectName, role, addedBy: { uid, name }, sourceSocketId }\`
 - **\`user:collaborator_updated\`** – O papel do utilizador num projeto foi alterado.
-  - Payload: \`{ projectUid, projectName, role, startAt, endAt }\`
+  - Payload: \`{ projectUid, projectName, role, startAt, endAt, updatedBy: { uid, name }, sourceSocketId }\`
 - **\`user:collaborator_removed\`** – O utilizador foi removido de um projeto.
-  - Payload: \`{ projectUid, projectName }\`
+  - Payload: \`{ projectUid, projectName, removedBy: { uid, name }, sourceSocketId }\`
 - **\`user:avatar_updated\`** – O utilizador atualizou a sua foto de perfil.
-  - Payload: \`{ avatarUrl }\`
+  - Payload: \`{ avatarUrl, sourceSocketId }\`
 
-**Nota:** Todos os eventos incluem informações contextuais e o utilizador que realizou a ação quando aplicável.`
+**Nota:** Todos os eventos incluem informações contextuais, o utilizador que realizou a ação e o identificador da sessão socket que originou o evento.`
             }
         ]
     },

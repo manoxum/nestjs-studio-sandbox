@@ -1,5 +1,3 @@
-// filename: src/socket/index.ts
-
 // src/socket/index.ts
 import { Server as HttpServer } from 'http';
 import { Server as SocketServer, Socket } from 'socket.io';
@@ -7,13 +5,13 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../db/prisma';
 import { SOCKET_EVENTS } from './events';
 
-// Mapa para manter referência dos sockets por userId
+// Mapa para manter referência dos sockets por userId (útil para emitir para salas pessoais)
 const userSockets = new Map<number, Socket[]>();
 
 export function initSocketServer(httpServer: HttpServer): SocketServer {
     const io = new SocketServer(httpServer, {
         cors: {
-            origin: '*',
+            origin: '*', // Ajuste conforme necessário em produção
             methods: ['GET', 'POST'],
         },
     });
@@ -21,7 +19,10 @@ export function initSocketServer(httpServer: HttpServer): SocketServer {
     // Middleware de autenticação
     io.use((socket, next) => {
         const token = socket.handshake.auth.token;
-        if (!token) return next(new Error('Authentication token missing'));
+        if (!token) {
+            return next(new Error('Authentication token missing'));
+        }
+
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
                 id: number;
@@ -40,23 +41,29 @@ export function initSocketServer(httpServer: HttpServer): SocketServer {
         const user = socket.data.user;
         console.log(`[SOCKET] User ${user.email} connected (socket ${socket.id})`);
 
-        if (!userSockets.has(user.id)) userSockets.set(user.id, []);
+        // Guarda referência do socket para este utilizador
+        if (!userSockets.has(user.id)) {
+            userSockets.set(user.id, []);
+        }
         userSockets.get(user.id)!.push(socket);
 
         // Sala pessoal do utilizador
         socket.join(`user:${user.id}`);
         console.log(`[SOCKET] User ${user.email} joined personal room user:${user.id}`);
 
+        // Entrar na sala do projeto
         socket.on(SOCKET_EVENTS.JOIN_PROJECT, (projectUid: string) => {
             socket.join(`project:${projectUid}`);
             console.log(`[SOCKET] User ${user.email} joined room project:${projectUid}`);
         });
 
+        // Sair da sala do projeto
         socket.on(SOCKET_EVENTS.LEAVE_PROJECT, (projectUid: string) => {
             socket.leave(`project:${projectUid}`);
             console.log(`[SOCKET] User ${user.email} left room project:${projectUid}`);
         });
 
+        // Subscrever a um asset específico
         socket.on(SOCKET_EVENTS.SUBSCRIBE_ASSET, async (assetUid: string) => {
             try {
                 const asset = await prisma.asset.findUnique({
@@ -67,6 +74,7 @@ export function initSocketServer(httpServer: HttpServer): SocketServer {
                     socket.emit('error', { message: 'Asset not found' });
                     return;
                 }
+                // Verificar se o utilizador tem acesso ao projeto que contém o asset
                 const hasAccess = await prisma.project.findFirst({
                     where: {
                         uid: asset.project.uid,
@@ -88,13 +96,16 @@ export function initSocketServer(httpServer: HttpServer): SocketServer {
             }
         });
 
+        // Cancelar subscrição de um asset
         socket.on(SOCKET_EVENTS.UNSUBSCRIBE_ASSET, (assetUid: string) => {
             socket.leave(`asset:${assetUid}`);
             console.log(`[SOCKET] User ${user.email} unsubscribed from asset:${assetUid}`);
         });
 
+        // Lidar com desconexão
         socket.on(SOCKET_EVENTS.DISCONNECT, () => {
             console.log(`[SOCKET] User ${user.email} disconnected (socket ${socket.id})`);
+            // Remove o socket do mapa
             const sockets = userSockets.get(user.id) || [];
             const index = sockets.indexOf(socket);
             if (index !== -1) sockets.splice(index, 1);

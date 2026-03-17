@@ -1,5 +1,3 @@
-// filename: src/routes/invites.ts
-
 // src/routes/invites.ts
 import { Router } from 'express';
 import { randomBytes } from 'crypto';
@@ -259,13 +257,16 @@ publicInvitesRouter.post('/join', authenticate, async (req: AuthRequest, res) =>
                 endAt: collaborator.endAt,
             },
             addedBy: { uid: req.user!.uid, name: req.user!.name },
+            sourceSocketId: (req as any).socketId,
         };
 
-        emitToProject(io, invite.project.uid, SOCKET_EVENTS.COLLABORATOR_ADDED, payload, userId);
+        emitToProject(io, invite.project.uid, SOCKET_EVENTS.COLLABORATOR_ADDED, payload, (req as any).socketId);
         emitToUser(io, userId, SOCKET_EVENTS.USER_COLLABORATOR_ADDED, {
             projectUid: invite.project.uid,
             projectName: invite.project.name,
             role: collaborator.role,
+            addedBy: { uid: req.user!.uid, name: req.user!.name },
+            sourceSocketId: (req as any).socketId,
         });
 
         res.json({

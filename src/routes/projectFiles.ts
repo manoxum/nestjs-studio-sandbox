@@ -12,7 +12,7 @@ import { sanitiseFilename } from '../utils/sanitize';
 import { io } from '../server';
 import { SOCKET_EVENTS } from '../socket/events';
 import { emitToProject, emitToAsset } from '../server';
-import { recordContribution } from '../services/contribution'; // <-- importar
+import { recordContribution } from '../services/contribution';
 
 const router = Router({ mergeParams: true });
 const upload = multer({ storage: multer.memoryStorage() });
@@ -63,8 +63,6 @@ router.post('/files', upload.single('file'), async (req: AuthRequest, res) => {
     let filename: string;
     let content: Buffer | string = '';
 
-
-
     if (req.file) {
         filename = req.file.originalname;
         content = req.file.buffer;
@@ -107,14 +105,14 @@ router.post('/files', upload.single('file'), async (req: AuthRequest, res) => {
 
         let createData: Prisma.AssetUncheckedCreateInput;
         if (req.file) {
-            createData = { ...baseCreateData, binary: content as  Uint8Array<ArrayBuffer> | null | undefined, text: null };
+            createData = { ...baseCreateData, binary: content as any, text: null };
         } else {
             createData = { ...baseCreateData, text: content as string, binary: null };
         }
 
         let updateData: Prisma.AssetUncheckedUpdateInput;
         if (req.file) {
-            updateData = { updatedBy: userId, binary: content as  Uint8Array<ArrayBuffer> | null | undefined, text: null };
+            updateData = { updatedBy: userId, binary: content as any, text: null };
         } else {
             updateData = { updatedBy: userId, text: content as string, binary: null };
         }
@@ -125,7 +123,6 @@ router.post('/files', upload.single('file'), async (req: AuthRequest, res) => {
             create: createData,
         });
 
-        // Registar contribuição
         await recordContribution(
             userId,
             req.file ? 'file_created' : 'file_updated',
@@ -140,11 +137,10 @@ router.post('/files', upload.single('file'), async (req: AuthRequest, res) => {
             assetUid: asset.uid,
             action: req.file ? 'created' : 'updated',
             user: { uid: req.user!.uid, name: req.user!.name },
+            sourceSocketId: (req as any).socketId,
         };
 
-        // Emitir para a sala do projeto, excluindo o socket que fez a requisição
         emitToProject(io, projectUid, event, payload, (req as any).socketId);
-        // Emitir também para a sala do asset, excluindo o socket que fez a requisição
         emitToAsset(io, asset.uid, event, payload, (req as any).socketId);
 
         res.status(201).json({ message: 'File saved', assetUid: asset.uid });
@@ -304,7 +300,6 @@ router.delete('/files/*', async (req: AuthRequest, res) => {
         });
         await prisma.asset.deleteMany({ where: { projectId: project.id, path: filePath } }).catch(() => {});
 
-        // Registar contribuição
         await recordContribution(
             userId,
             'file_deleted',
@@ -312,7 +307,12 @@ router.delete('/files/*', async (req: AuthRequest, res) => {
             { path: filePath, assetUids: assets.map(a => a.uid) }
         );
 
-        const payload = { projectUid, path: filePath, user: { uid: req.user!.uid, name: req.user!.name } };
+        const payload = {
+            projectUid,
+            path: filePath,
+            user: { uid: req.user!.uid, name: req.user!.name },
+            sourceSocketId: (req as any).socketId,
+        };
         emitToProject(io, projectUid, SOCKET_EVENTS.FILE_DELETED, payload, (req as any).socketId);
         for (const asset of assets) {
             emitToAsset(io, asset.uid, SOCKET_EVENTS.FILE_DELETED, payload, (req as any).socketId);

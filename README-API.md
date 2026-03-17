@@ -14,6 +14,7 @@ API para gerenciamento de sandboxes Docker com suporte a WebSockets (Socket.IO) 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ------ |
 | projectUid | path |  | Yes | string |
+| tree | query | Se true, retorna a árvore hierárquica (assets organizados por parentId) | No | boolean |
 
 #### Responses
 
@@ -34,7 +35,7 @@ API para gerenciamento de sandboxes Docker com suporte a WebSockets (Socket.IO) 
 
 | Required | Schema |
 | -------- | ------ |
-|  Yes | **application/json**: { **"type"**: string, **"name"**: string, **"path"**: string, **"configs"**: object, **"binary"**: binary, **"text"**: string }<br> |
+|  Yes | **application/json**: { **"type"**: string, **"name"**: string, **"path"**: string, **"configs"**: object, **"binary"**: binary, **"text"**: string, **"parentUid"**: string (uuid) }<br> |
 
 #### Responses
 
@@ -52,6 +53,7 @@ API para gerenciamento de sandboxes Docker com suporte a WebSockets (Socket.IO) 
 | ---- | ---------- | ----------- | -------- | ------ |
 | projectUid | path |  | Yes | string |
 | assetUid | path |  | Yes | string |
+| depth | query | Profundidade dos filhos a incluir (-1 para infinito) | No | integer |
 
 #### Responses
 
@@ -74,7 +76,7 @@ API para gerenciamento de sandboxes Docker com suporte a WebSockets (Socket.IO) 
 
 | Required | Schema |
 | -------- | ------ |
-|  Yes | **application/json**: { **"name"**: string, **"configs"**: object, **"binary"**: binary, **"text"**: string }<br> |
+|  Yes | **application/json**: { **"name"**: string, **"configs"**: object, **"binary"**: binary, **"text"**: string, **"parentUid"**: string (uuid) }<br> |
 
 #### Responses
 
@@ -100,6 +102,25 @@ API para gerenciamento de sandboxes Docker com suporte a WebSockets (Socket.IO) 
 | ---- | ----------- |
 | 200 | Asset removido |
 | 403 | Permissão insuficiente |
+
+### [GET] /projects/{projectUid}/assets/{assetUid}/children
+**Lista os filhos de um asset**
+
+#### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ------ |
+| projectUid | path |  | Yes | string |
+| assetUid | path |  | Yes | string |
+| recursive | query | Se true, retorna todos os descendentes recursivamente; se false, apenas filhos diretos. | No | boolean |
+
+#### Responses
+
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | Lista de assets filhos | **application/json**: { **"children"**: [ [Asset](#asset) ] }<br> |
+| 403 | Acesso negado |  |
+| 404 | Asset não encontrado |  |
 
 ---
 ## Auth
@@ -916,6 +937,7 @@ API para gerenciamento de sandboxes Docker com suporte a WebSockets (Socket.IO) 
 | userOwnerId | string (uuid) |  | No |
 | path | string |  | No |
 | configs | object |  | No |
+| parentUid | string (uuid) | UID do asset pai (para hierarquia) | No |
 | createdAt | dateTime |  | No |
 | updatedAt | dateTime |  | No |
 
